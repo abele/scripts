@@ -10,26 +10,24 @@ GREETING = '（╯°□°）╯︵(\ .o.)\ GET SHREDING!!!'
 #: Exception to test if branch gets executed
 hell = Exception('(╯°□°）╯︵ ┻━┻!')
 
+cwd_base = builtins.__xonsh_env__['FORMATTER_DICT']['cwd_base']
+
 
 def source_envdir(args, stdin=None):
     """Read envdir in current environment."""
-    env = builtins.__xonsh_env__
-    path = next(iter(args or []), 'env')
-
-    for root, _, file_list in os.walk(path):
-        for env_file in file_list:
-            print(env_file)
-            env[env_file] = open(os.path.join(root, env_file)).read().rstrip()
+    for root, _, file_list in os.walk(first(args, 'env')):
+        for var_name in file_list:
+            var_value = open(os.path.join(root, var_name)).read().rstrip()
+            print(var_name)
+            builtins.__xonsh_env__[var_name] = var_value
 
 
 def dev(args, stdin=None):
-    env = builtins.__xonsh_env__
-    name = next(iter(args or []), env['FORMATTER_DICT']['cwd_base']())
-
-    if name in _run_cmd('tmux ls; exit 0'):
-        _run_cmd('tmux attach -t ' + name)
+    session_name = first(args, cwd_base())
+    if session_name in _run_cmd('tmux ls; exit 0'):
+        _run_cmd('tmux attach -t ' + session_name)
     else:
-        _run_cmd('tmux new -s ' + name)
+        _run_cmd('tmux new -s ' + session_name)
 
 
 def scratch(args, stdin=None):
@@ -51,21 +49,20 @@ def workon(args, stdin=None):
     """Activate Python virtualenv."""
     venv_name = first(args, 'venv')
     venv_path = os.path.join(os.getcwd(), venv_name)
+    venv_bin_path = os.path.join(venv_path, 'bin')
 
     if not os.path.exists(venv_path):
         raise OSError('Faild to activate venv: no such venv{}'.format(venv_path))
 
-    env = builtins.__xonsh_env__
-
-    if  'VIRTUAL_ENV' in env:
+    if  'VIRTUAL_ENV' in builtins.__xonsh_env__:
         deactivate(None, None)
 
-    path_orig = list(env['PATH'])
-    prompt_orig = env['PROMPT']
+    path_orig = list(builtins.__xonsh_env__['PATH'])
+    prompt_orig = builtins.__xonsh_env__['PROMPT']
 
-    env['VIRTUAL_ENV'] = venv_path
-    env['PROMPT'] = '({}) {}'.format(venv_name, prompt_orig)
-    env['PATH'] = [os.path.join(venv_path, 'bin')]  + path_orig
+    builtins.__xonsh_env__['VIRTUAL_ENV'] = venv_path
+    builtins.__xonsh_env__['PROMPT'] = '({}) {}'.format(venv_name, prompt_orig)
+    builtins.__xonsh_env__['PATH'] = [venv_bin_path]  + path_orig
 
     workon._path_orig = path_orig
     workon._prompt_orig = prompt_orig
@@ -73,11 +70,10 @@ def workon(args, stdin=None):
 
 def deactivate(args, stdin=None):
     """Deactivate Python virtualenv."""
-    env = builtins.__xonsh_env__
     try:
-        del env['VIRTUAL_ENV']
-        env['PATH'] = workon._path_orig
-        env['PROMPT'] = workon._prompt_orig
+        del builtins.__xonsh_env__['VIRTUAL_ENV']
+        builtins.__xonsh_env__['PATH'] = workon._path_orig
+        builtins.__xonsh_env__['PROMPT'] = workon._prompt_orig
     except KeyError:
         raise OSError('Failed to deactivate virtualenv.')
 
