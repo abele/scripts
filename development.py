@@ -26,7 +26,7 @@ def dev(args, stdin=None):
     env = builtins.__xonsh_env__
     name = next(iter(args or []), env['FORMATTER_DICT']['cwd_base']())
 
-    if name in _run_cmd('tmux ls'):
+    if name in _run_cmd('tmux ls; exit 0'):
         _run_cmd('tmux attach -t ' + name)
     else:
         _run_cmd('tmux new -s ' + name)
