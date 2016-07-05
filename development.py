@@ -6,11 +6,14 @@ import subprocess
 import xonsh
 
 #: Motivating quote to get you working
-GREETING = '（╯°□°）╯︵(\ .o.)\ GET SHREDING!!!'
+GREETING = """ (╯°□°）╯︵ ┻━┻ Let\'s do some fun!!!
+[Batch, Chunk, Protect, Break]
+"""
 #: Exception to test if branch gets executed
 hell = Exception('(╯°□°）╯︵ ┻━┻!')
 
 cwd_base = builtins.__xonsh_env__['FORMATTER_DICT']['cwd_base']
+PROJECT_MARKER = set(('.git', 'Makefile', '.ropeproject'))
 
 
 def source_envdir(args, stdin=None):
@@ -75,7 +78,22 @@ def deactivate(args, stdin=None):
         builtins.__xonsh_env__['PATH'] = workon._path_orig
         builtins.__xonsh_env__['PROMPT'] = workon._prompt_orig
     except KeyError:
-        raise OSError('Failed to deactivate virtualenv.')
+        pass
+
+
+def cd_base():
+    """Return project root path."""
+    while PROJECT_MARKER.isdisjoint(set(os.listdir())):
+        xonsh.dirstack.cd([os.pardir])
+
+    print(os.getcwd())
+
+
+def _envfile(args, stdin=None):
+    for line in open(first(args, '.env')):
+        if line.strip() and not line.startswith('#'):
+            key, value = line.split('=', 1)
+            builtins.__xonsh_env__[key.strip()] = value.strip()
 
 
 def setup():
@@ -86,6 +104,8 @@ def setup():
     builtins.aliases['workon'] = workon
     builtins.aliases['work'] = workon
     builtins.aliases['deactivate'] = deactivate
+    builtins.aliases['cdb'] = cd_base
+    builtins.aliases['envfile'] = _envfile
 
 
 def _run_cmd(cmd):
